@@ -1523,7 +1523,6 @@ def mb_calibration_from_geodetic_mb(gdir,
                                   'you posted!')
 
     # Ok, regardless on how we want to calibrate, we start with defaults
-    # temp_bias = 0
     melt_f = monthly_melt_f_default
     if prcp_scaling_factor is None:
         if cfg.PARAMS['use_winter_prcp_factor']:
