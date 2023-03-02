@@ -507,14 +507,8 @@ class MonthlyTIModel(MassBalanceModel):
             # Read timeseries and correct it
             self.temp = nc.variables['temp'][pok].astype(np.float64) + self._temp_bias
             self.prcp = nc.variables['prcp'][pok].astype(np.float64) * self._prcp_fac
-            if 'gradient' in nc.variables and cfg.PARAMS['temp_use_local_gradient']:
-                grad = nc.variables['gradient'][pok].astype(np.float64)
-                # Security for stuff that can happen with local gradients
-                g_minmax = cfg.PARAMS['temp_local_gradient_bounds']
-                grad = np.where(~np.isfinite(grad), default_grad, grad)
-                grad = clip_array(grad, g_minmax[0], g_minmax[1])
-            else:
-                grad = self.prcp * 0 + default_grad
+
+            grad = self.prcp * 0 + default_grad
             self.grad = grad
             self.ref_hgt = nc.ref_hgt
             self.climate_source = nc.climate_source
