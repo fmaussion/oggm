@@ -4163,7 +4163,7 @@ class GlacierDirectory(object):
             # these as pickles. Keeps existing pre-processed directories
             # readable until the prepro chain has been regenerated.
             # TODO: remove once the v1.6 pre-processed directories are gone.
-            if os.path.exists(fp.replace('.npz', '.pkl')):
+            if fp.endswith('.npz') and os.path.exists(fp[:-4] + '.pkl'):
                 return self.read_pickle(filename, filesuffix=filesuffix)
             raise FileNotFoundError(f'No data file found for {fp}')
 
@@ -4224,9 +4224,8 @@ class GlacierDirectory(object):
 
         # Don't leave a legacy pickle behind shadowing what we just wrote:
         # read_pickle is still public API and would serve the stale one.
-        legacy = fp.replace('.npz', '.pkl')
-        if legacy != fp and os.path.exists(legacy):
-            os.remove(legacy)
+        if fp.endswith('.npz') and os.path.exists(fp[:-4] + '.pkl'):
+            os.remove(fp[:-4] + '.pkl')
 
     def read_json(self, filename, filesuffix='', allow_empty=False):
         """Reads a JSON file located in the directory.

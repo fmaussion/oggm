@@ -887,7 +887,7 @@ def add_to_basenames(basename, filename, docstr=''):
     basename : str
         the key (e.g. 'dem', 'model_flowlines')
     filename : str
-        the associated filename (e.g. 'dem.tif', 'model_flowlines.pkl')
+        the associated filename (e.g. 'dem.tif', 'model_flowlines.npz')
     docstr : str
         the associated docstring (for documentation)
     """
