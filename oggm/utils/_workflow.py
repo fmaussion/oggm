@@ -4216,7 +4216,11 @@ class GlacierDirectory(object):
         arrays, meta = serialize.encode(filename, var, gdir=self)
 
         fp = self.get_filepath(filename, filesuffix=filesuffix)
-        np.savez(fp, __meta__=np.array(json.dumps(meta)), **arrays)
+        # Write through a file object: np.savez would otherwise append '.npz'
+        # to any path that doesn't already end in it, which would silently
+        # rename user-registered basenames (see cfg.add_to_basenames).
+        with open(fp, 'wb') as f:
+            np.savez(f, __meta__=np.array(json.dumps(meta)), **arrays)
 
         # Don't leave a legacy pickle behind shadowing what we just wrote:
         # read_pickle is still public API and would serve the stale one.
