@@ -1113,3 +1113,50 @@ class TestGdirObservations:
                 write_to_gdir=False,
             )
         assert 'You have not provided an reference' in str(exc_info.value)
+
+
+class TestMultiprocessingReset:
+    """reset_multiprocessing must leave cfg with plain dicts, not proxies."""
+
+    def test_cfg_dicts_are_unproxied_after_reset(self):
+        """A pool must not leave cfg.DATA proxied for everything after it.
+
+        cfg.set_manager() rebinds DL_VERIFIED / DEM_SOURCE_TABLE / DATA to
+        manager proxies and nothing rebinds them back, so if the manager
+        outlives the pool every later lookup becomes an IPC round trip.
+        cfg.DATA memoizes whole DataFrames, which makes that expensive.
+        """
+        if not use_multiprocessing():
+            pytest.skip('multiprocessing not enabled for tests')
+
+        cfg.initialize(logging_level='ERROR')
+        cfg.PARAMS['use_multiprocessing'] = True
+        try:
+            workflow.init_mp_pool()
+            assert type(cfg.DATA).__name__ == 'DictProxy'
+
+            workflow.reset_multiprocessing()
+
+            for name in ['DATA', 'DL_VERIFIED', 'DEM_SOURCE_TABLE']:
+                assert isinstance(getattr(cfg, name), dict), \
+                    f'cfg.{name} is still proxied after reset_multiprocessing'
+        finally:
+            workflow.reset_multiprocessing()
+
+    def test_cfg_contents_survive_the_reset(self):
+        """Unproxying copies the contents back, it does not drop them."""
+        if not use_multiprocessing():
+            pytest.skip('multiprocessing not enabled for tests')
+
+        cfg.initialize(logging_level='ERROR')
+        cfg.PARAMS['use_multiprocessing'] = True
+        try:
+            workflow.init_mp_pool()
+            cfg.DATA['a_test_key'] = [1, 2, 3]
+
+            workflow.reset_multiprocessing()
+
+            assert cfg.DATA['a_test_key'] == [1, 2, 3]
+        finally:
+            cfg.DATA.pop('a_test_key', None)
+            workflow.reset_multiprocessing()

@@ -63,6 +63,7 @@ def init_mp_pool(reset=False):
     cfg.CONFIG_MODIFIED = False
     if _mp_pool:
         _mp_pool.terminate()
+        _mp_pool.join()  # wait for workers to exit before the manager goes
         _mp_pool = None
     if _mp_manager:
         cfg.set_manager(None)
@@ -132,10 +133,27 @@ def reset_multiprocessing():
     Call this if you changed configuration parameters mid-run and need them to
     be re-propagated to child processes.
     """
-    global _mp_pool
+    global _mp_pool, _mp_manager
     if _mp_pool:
+        # terminate() only signals the workers; join() waits for them to
+        # actually exit, so none is still talking to the manager below.
         _mp_pool.terminate()
+        _mp_pool.join()
         _mp_pool = None
+    if _mp_manager:
+        # Tearing the manager down also matters for the parent process, not
+        # just for the workers: set_manager() rebinds cfg.DL_VERIFIED,
+        # cfg.DEM_SOURCE_TABLE and cfg.DATA to manager proxies, and nothing
+        # else ever rebinds them back (cfg.initialize() only writes into
+        # them). Leaving them proxied means every later lookup is an IPC
+        # round trip to the manager process - and cfg.DATA memoizes whole
+        # DataFrames, so a cache hit re-pickles the entire table over a
+        # socket (~16 ms for an RGI-sized one, against ~0 for a dict).
+        # set_manager(None) has to run while the manager is still alive:
+        # it copies the proxy contents back into plain dicts.
+        cfg.set_manager(None)
+        _mp_manager.shutdown()
+        _mp_manager = None
     cfg.CONFIG_MODIFIED = False
 
 
