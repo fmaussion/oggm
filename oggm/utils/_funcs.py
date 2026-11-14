@@ -826,7 +826,7 @@ def _date_to_floatyear_scalar(y, m, d=None):
     y = int(y)
     m = int(m)
     d = 1 if d is None else int(d)
-    leap = (y % 4 == 0) and ((y % 100 != 0) or (y % 400 == 0))
+    leap = _is_leap_year_scalar(y)
     doy = d + _BASE_CUM_START_LIST[m - 1] + (leap and m > 2)
     return np.float64(y + (doy - 1) / (366 if leap else 365))
 
@@ -847,7 +847,8 @@ def date_to_floatyear(y, m, d=None):
     d : int or array_like or None
         the day. If None the 1. of the month is used
     """
-    if np.ndim(y) == 0 and np.ndim(m) == 0 and np.ndim(d) == 0:
+    if (_is_scalar(y) and _is_scalar(m) and
+            (d is None or _is_scalar(d))):
         return _date_to_floatyear_scalar(y, m, d)
 
     y = np.asarray(y, dtype=np.int64)
@@ -881,7 +882,7 @@ def _floatyear_to_date_scalar(yr, return_day=False):
     y = math.floor(yr)
     f = min(max(yr - y, 0.0), _ONE_MINUS_EPS)
 
-    leap = (y % 4 == 0) and ((y % 100 != 0) or (y % 400 == 0))
+    leap = _is_leap_year_scalar(y)
     n = 366 if leap else 365
 
     # round() is half-to-even, like np.rint
@@ -920,7 +921,7 @@ def floatyear_to_date(yr, return_day=False):
         If False a tuple (year, month) will be returned, if True a tuple
         (year, month, day) will be returned. Default is False.
     """
-    if np.ndim(yr) == 0:
+    if _is_scalar(yr):
         return _floatyear_to_date_scalar(yr, return_day=return_day)
 
     yr = np.asarray(yr, dtype=np.float64)
